@@ -5,7 +5,7 @@ integrating genomics, transcriptomics, and phenotype data with machine learning.
 
 # VIOLA workflow
 
-<img src="viola_workflow.png" alt="VIOLA workflow" width="600"/>
+<img width="4588" height="3511" alt="viola_workflow" src="https://github.com/user-attachments/assets/b2560189-5baa-45c1-a19e-844d1c54eac8" />
 
 ## 📦 Requirements
 
