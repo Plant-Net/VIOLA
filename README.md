@@ -23,14 +23,55 @@ The VIOLA pipeline is composed of 3 scripts :
 
 This script merges annotation datasets (e.g. VEP and CADD annotations) into a unified input table for downstream analysis.
 
-#### R requirements
+### R requirements
 
 The following R libraries are required:
 - dplyr
 - tidyr
 
+### Required files
 
-#### Usage
+#### VEP file
+
+VIOLA requires variants annotated with VEP (Variant Effect Predictor).
+Please run VEP with the following options:
+
+```bash
+vep -i input_file.vcf -o output_file.vcf --cache --offline --assembly GRCh38 --vcf \
+--check_existing --af --af_1kg --af_gnomad --af_esp
+```
+
+Then, run filter_vep to select only rare variants with the following options:
+
+```bash
+filter_vep -i input_file.vcf -o output_file.vcf -filter "SYMBOL and ((AF < 0.01 or gnomAD_AF < 0.01) or (not AF and not gnomAD_AF and not EUR_AF))"
+```
+
+Finally, run bcftools with the plugin split-vep to obtain a tabulated file.
+
+```bash
+echo -e "CHROM\tPOS\tREF\tALT\tQUAL\tGT\tAD\tDP\t$(bcftools +split-vep -l input_file.vcf | cut -f 2 | tr '\n' '\t' | sed 's/\t$//')" > output_file.tsv ; \
+bcftools +split-vep -f '%CHROM\t%POS\t%REF\t%ALT\t%QUAL\t[%GT]\t[%AD]\t[%DP]\t%CSQ\n' -d -A tab input_file.vcf >> output_file.tsv
+```
+
+The output file (.tsv) is used as input for viola_step1_merge.R.
+
+#### CADD file
+
+VIOLA requires CADD (Combined Annotation Dependent Depletion) scores.
+Please run CADD with the following options:
+
+```bash
+CADD.sh -a -g GRCh38 -o output.tsv.gz input_file.vcf
+```
+
+The output file (.tsv) is used as input for viola_step1_merge.R.
+
+#### ClinVar input file
+
+A preprocessed ClinVar file is provided in the repository `resources`: `clinvar_210125_hg38_cleaned.tsv`.
+
+### Usage
 
 `Rscript viola_step1_merge.R -h` will give you the following help message:
 
@@ -54,14 +95,11 @@ Options:
 		Show this help message and exit
 ```
 
-The ClinVar file can be found in `resources` (`clinvar_210125_hg38_cleaned.tsv`).
-
-
 ## viola_step2_cluster
 
 This script runs the **Variational Autoencoder (VAE)** for dimensionality reduction and applies **DBSCAN** clustering to group outlier variants.
 
-#### Python requirements
+### Python requirements
 
 The following Python libraries are required:
 - tensorflow
@@ -69,8 +107,11 @@ The following Python libraries are required:
 - pandas
 - numpy
 
+### Required file
 
-#### Usage
+The input file to process is the output file of `viola_step1_merge.R` script.
+
+### Usage
 
 `python viola_step2_cluster.py -h` will give you the following help message:
 
@@ -90,7 +131,7 @@ optional arguments:
 
 This script applies **filtering** (quality, biotype, and Variant Allele Frequency), integrates **HPO** terms, and generates the final variant **ranking**.
 
-#### R requirements
+### R requirements
 
 The following R libraries are required:
 - dplyr
@@ -99,8 +140,32 @@ The following R libraries are required:
 - data.table
 - ontologyIndex
 
+### Required files
 
-#### Usage
+#### Input file
+
+The input file is the one of the outputs of the script `viola_step2_cluster.py` and follows the pattern: "res_dbscan.csv".
+
+#### HPO table
+
+The HPO table must be provided by the user. This is a 2-column CSV file like:
+
+patient_id    HPO_term
+patient1      HP:0001250
+patient1      HP:0000518
+patient2      HP:0001638
+
+#### VCF of unique rare variants
+
+This file can be obtained by filtering the original VCF using bcftools.
+If no cohort is available to determine whether a variant is unique, please provide a VCF file containing only rare variants.
+
+#### Resources folder
+
+Resources folder contains reference files for transcriptomic co-expression matrices and mitochondrial gene lists.
+The provided repository already includes the necessary files in resources.
+
+### Usage
 
 `Rscript viola_step3_rank.R -h` will give you the following help message:
 
