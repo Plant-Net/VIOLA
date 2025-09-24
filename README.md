@@ -7,10 +7,61 @@ integrating genomics, transcriptomics, and phenotype data with machine learning.
 
 <img width="4588" height="3511" alt="viola_workflow" src="https://github.com/user-attachments/assets/b2560189-5baa-45c1-a19e-844d1c54eac8" />
 
-## 📦 Requirements
+## Requirements
 
 - R (≥ 4.2)
 - Python (≥ 3.9)
+- VEP (≥ 99)
+- CADD (≥ 1.6)
+
+## Preparing input files
+
+VIOLA requires variants annotated with VEP (Variant Effect Predictor), CADD (Combined Annotation Dependent Depletion), and ClinVar to run.
+
+#### VEP file
+
+Please run VEP with the following options:
+
+```bash
+vep -i input_file.vcf -o output_file.vcf --cache --offline --assembly GRCh38 --vcf \
+--check_existing --af --af_1kg --af_gnomad --af_esp
+```
+
+where *input_file.vcf* is the raw VCF file and *output_file.vcf* is the output VCF file obtained.
+
+
+Then, run *filter_vep* to select only rare variants with the following options:
+
+```bash
+filter_vep -i input_file.vcf -o output_file.vcf -filter "SYMBOL and ((AF < 0.01 or gnomAD_AF < 0.01) or (not AF and not gnomAD_AF and not EUR_AF))"
+```
+
+where *input_file.vcf* is the output VCF file of previous step and the *output_file.vcf* is the output VCF file obtained.
+
+Finally, run bcftools with the plugin split-vep to obtain a tabulated file.
+
+```bash
+echo -e "CHROM\tPOS\tREF\tALT\tQUAL\tGT\tAD\tDP\t$(bcftools +split-vep -l input_file.vcf | cut -f 2 | tr '\n' '\t' | sed 's/\t$//')" > output_file.tsv ; \
+bcftools +split-vep -f '%CHROM\t%POS\t%REF\t%ALT\t%QUAL\t[%GT]\t[%AD]\t[%DP]\t%CSQ\n' -d -A tab input_file.vcf >> output_file.tsv
+```
+
+where *input_file.vcf* is the ouput file of previous step and the *output_file.tsv* is the output TSV file obtained and used as input for viola_step1_merge.R.
+
+
+#### CADD file
+
+Please run CADD with the following options:
+
+```bash
+CADD.sh -a -g GRCh38 -o output.tsv.gz input_file.vcf
+```
+
+where *input_file.vcf* is the raw VCF file containing variants and the *output.tsv.gz* is the output TSV file used as input for viola_step1_merge.R.
+
+
+#### ClinVar input file
+
+A preprocessed ClinVar file is provided in the repository `resources`: `clinvar_210125_hg38_cleaned.tsv`.
 
 # Scripts
 
@@ -28,48 +79,6 @@ This script merges annotation datasets (e.g. VEP and CADD annotations) into a un
 The following R libraries are required:
 - dplyr
 - tidyr
-
-### Required files
-
-#### VEP file
-
-VIOLA requires variants annotated with VEP (Variant Effect Predictor).
-Please run VEP with the following options:
-
-```bash
-vep -i input_file.vcf -o output_file.vcf --cache --offline --assembly GRCh38 --vcf \
---check_existing --af --af_1kg --af_gnomad --af_esp
-```
-
-Then, run filter_vep to select only rare variants with the following options:
-
-```bash
-filter_vep -i input_file.vcf -o output_file.vcf -filter "SYMBOL and ((AF < 0.01 or gnomAD_AF < 0.01) or (not AF and not gnomAD_AF and not EUR_AF))"
-```
-
-Finally, run bcftools with the plugin split-vep to obtain a tabulated file.
-
-```bash
-echo -e "CHROM\tPOS\tREF\tALT\tQUAL\tGT\tAD\tDP\t$(bcftools +split-vep -l input_file.vcf | cut -f 2 | tr '\n' '\t' | sed 's/\t$//')" > output_file.tsv ; \
-bcftools +split-vep -f '%CHROM\t%POS\t%REF\t%ALT\t%QUAL\t[%GT]\t[%AD]\t[%DP]\t%CSQ\n' -d -A tab input_file.vcf >> output_file.tsv
-```
-
-The output file (.tsv) is used as input for viola_step1_merge.R.
-
-#### CADD file
-
-VIOLA requires CADD (Combined Annotation Dependent Depletion) scores.
-Please run CADD with the following options:
-
-```bash
-CADD.sh -a -g GRCh38 -o output.tsv.gz input_file.vcf
-```
-
-The output file (.tsv) is used as input for viola_step1_merge.R.
-
-#### ClinVar input file
-
-A preprocessed ClinVar file is provided in the repository `resources`: `clinvar_210125_hg38_cleaned.tsv`.
 
 ### Usage
 
@@ -144,7 +153,7 @@ The following R libraries are required:
 
 #### Input file
 
-The input file is the one of the outputs of the script `viola_step2_cluster.py` and follows the pattern: "res_dbscan.csv".
+The input file is the one of the outputs of the script `viola_step2_cluster.py` and contains the suffix: "res_dbscan.csv".
 
 #### HPO table
 
