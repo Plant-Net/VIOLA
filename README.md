@@ -150,10 +150,11 @@ The input file is the one of the outputs of the script `viola_step2_cluster.py` 
 
 The HPO table must be provided by the user. This is a 2-column CSV file like:
 
-patient_id    HPO_term
-patient1      HP:0001250
-patient1      HP:0000518
-patient2      HP:0001638
+| patient_id |    hpo_id  |
+|------------|------------|
+| patient1   | HP:0001250 |
+| patient1   | HP:0000518 |
+| patient2   | HP:0001638 |
 
 #### VCF of unique rare variants
 
