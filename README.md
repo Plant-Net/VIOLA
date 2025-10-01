@@ -63,9 +63,29 @@ where *input_file.vcf* is the raw VCF file containing variants and the *output.t
 
 A preprocessed ClinVar file is provided in the repository `resources`: `clinvar_210125_hg38_cleaned.tsv`.
 
-# Scripts
+# VIOLA all-in-one
 
-The VIOLA pipeline is composed of 3 scripts :
+The following script, located in `scripts` directory, provides a user-friendly usage of VIOLA pipeline that you can execute from its location.
+
+`bash run_viola.sh -h` will give you the following help message:
+
+```bash
+Usage: run_viola.sh -v VEP_INPUT -c CADD_INPUT -h HPO_TABLE -f UNIQUE_VARIANTS_VCF -r RESOURCES [-o OUTPUT_DIR]
+
+Arguments:
+  -v, --vep        Path to VEP input file
+  -c, --cadd       Path to CADD input file
+  -h, --hpo        Path to patient HPO table
+  -f, --vcf        Path to VCF file of unique rare variants
+  -r, --resources  Path to resources folder (contains ClinVar file)
+  -o, --out        Output directory (default: results/viola_run)
+  --help           Show this help message
+
+```
+
+# VIOLA step-by-step
+
+Alternatively, the VIOLA pipeline is composed of 3 scripts that you can run independently following the instructions below:
 - `viola_step1_merge.R`
 - `viola_step2_cluster.py`
 - `viola_step3_rank.R`
