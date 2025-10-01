@@ -128,7 +128,7 @@ compute_ar_score <- function(df) {
 
 get_unique_variant <- function(vcf_file) {
   # Load unique rare variants from VCF
-  df_unique_var <- fread(vcf_file, sep = '\t', header = TRUE, skip = '#CHROM')
+  df_unique_var <- fread(vcf_file, sep = '\t', header = TRUE)
   names(df_unique_var)[1] <- "CHROM"
   df_unique_var$CHROM <- gsub("chr", "", df_unique_var$CHROM)
   df_unique_var$unique_ID <- paste(df_unique_var$CHROM, df_unique_var$POS, sep = "_")
@@ -143,7 +143,7 @@ option_list <- list(
   make_option(c("-f", "--input"), dest = "input_file", help = "Path to input file"),
   make_option(c("-o", "--output_path"), dest = "output_path", help = "Path to output directory"),
   make_option(c("-t", "--hpo_table"), dest = "hpo_table_path", help = "Path to patient HPO table"),
-  make_option(c("-p", "--path_unique_var"), dest = "path_unique_var", help = "Path to VCF of unique rare variants"),
+  make_option(c("-p", "--unique_var_vcf"), dest = "path_unique_var", help = "Path to VCF of unique rare variants"),
   make_option(c("-r", "--resources"), dest = "resources_path", help = "Path to resources folder containing all required files")
 )
 
@@ -153,7 +153,7 @@ args <- parse_args(parser)
 input_file      <- args$input_file
 output_path     <- args$output_path
 hpo_table_path  <- args$hpo_table_path
-path_unique_var <- args$path_unique_var
+unique_var_vcf <- args$path_unique_var
 resources_path  <- args$resources_path
 
 file_prefix <- strsplit(basename(input_file), "_")[[1]][1]
@@ -208,8 +208,8 @@ enriched_module <- c("blue","cyan","brown","midnightblue","black","green","salmo
 df_known_md_genes <- read.csv(known_md_genes_file)
 known_md_genes <- df_known_md_genes$Gene.name
 
-vcf_file <- file.path(path_unique_var, file_prefix, paste0(file_prefix, "_unique_rare_variant.vcf"))
-df_unique_var <- get_unique_variant(vcf_file)
+#vcf_file <- read.delim(unique_var_vcf)
+df_unique_var <- get_unique_variant(unique_var_vcf)
 
 res_vs <- compute_vscore(subset_res, df_unique_var)
 write.csv(res_vs, file = file.path(output_path, paste0(file_prefix, "_vrank.csv")), row.names = FALSE)
